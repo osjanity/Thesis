@@ -1,0 +1,31 @@
+
+At the end of this thesis, a summary of the methods are their possible applications in different scenarios is given. All discussed techniques share some properties but differ in their requirements and usefulness.
+
+\subsection{Recommendation}
+Looking back at the classification approach in chapter \ref{chap:classification}, there are some clear results found in the last three chapters. Those enable some recommendations based on the scenario of the user.
+
+The easiest and fastest way to reduce a model without many sacrifices is quantization. It does not require new training and can be applied to otherwise finished and deployed models. So far, any gains in speed depend on the available hardware and the software optimization alongside it. The reduction of size and the great compression ratios can be used in almost every scenario without requiring further training, which is useful for scenarios where the training data is not available.
+
+In the case of slow inference times, pruning is the best choice. It requires more manual work and potentially significant amounts of training. In cases, when the model seems to be larger than it would be necessary, this provides a viable option. It may be worthwhile to apply magnitude-based pruning to investigate the potential for reduction first. Based on these results, channel pruning can be used to trim down structures of the model, with some filter replacements in the last step, as described by the hardware-usable pruning.
+
+For speeding up the training, knowledge distillation is a viable candidate. If another more complex model for solving the same problem is already available, the teacher output can be used to speed up the learning of a student. This will take less time than training from scratch but requires knowledge about a good choice for a student model. There are a lot of variations with this approach, so a notable amount of time has to be invested into finetuning the learning process of the student.
+
+\subsection{Combinations}
+The three methods that have been discussed so far approach the subject from very different angles. This makes it worthwhile to investigate their potential for combinations.
+
+Quantization is a useful last step after any training and can be combined with pruning as well as with knowledge distillation. Pruning and quantization approach shrinking the model differently from one another using mutual orthogonal processes. Any pruned model can be quantized, and the advantages can be combined, which leads to sizes of less than 10\% of the original model, before compression is even applied. Speed gains from pruning will not be harmed by quantization, but the inference time of a quantized model still depends on available hardware and software support.
+
+Knowledge distillation simply produces a new model as part of its process, which can be subject to quantization just as any other model, including all results that have been seen in chapter \ref{chap:quant-results}. Pruning can be more delicate, as knowledge distillation will likely result in an already minimal student. Here the potential must be explored for each case separately, but on a technical level those two methods can also be combined and will not interfere with each other.
+
+\subsection{Other Methods}
+There are some more methods to achieve the reduction and approximation of DL models which were not discussed in this thesis. For one, there are optimizations of the actual operations and calculations, such as matrix products. This resolves mostly around the actual implementation side and less with DL theory. Another such approach is taken by \cite{other:fft}, in which the authors employ Fourier transformation and lookup tables for faster convolutions. In \cite{other:few-multi} the authors aimed to minimize the number of multiplications in a model, as they are the most intensive arithmetic primitive operation.
+
+On the other hand, one completely new approach is to design the architecture of a model from scratch for a specific problem. A good example for this is SqueezeNet \cite{ref:squeezenet} which aims to achieve the same quality as AlexNet but at a smaller size and higher speed. This is possible by exploiting the known problem structure and optimizing the architecture for it. However, this is of course very problem specific and not a general approach, as with the methods discussed in this thesis.
+
+\subsection{Further Work}
+This thesis has left many options for further exploration open. Quantization can be taken down much further than 8-bit integer. Different operations in a model can work fine with even lower precision and various bit sizes may be combined, such as 8-bit for weights and 16-bit for activations. Also, training with fewer bits is possible and offers the potential for saving time. The implementation of optimized integer operations to take full advantage of the smaller computational load is left to the developers of frameworks such as TensorFlow and the hardware vendors such as Intel and NVIDIA.
+
+Pruning is not yet available in all frameworks and has not been deeply explored yet. Other heuristics for the choice of weights to prune have been discussed and, in this direction, there is more potential, same goes for the choice of filters to be removed. The L1 norm is a good measure for the importance of a filter, but there are better ones such as observing the impact of one filter onto the outcome and which features it detects. With hardware-usable pruning, there is a large potential for smarter filter replacement and the way one filter is shrunk, for example via interpolation instead of clear cuts.
+
+Knowledge distillation seems to be the least researched from the three in this thesis. There is room for more experimentation with loss functions and combinations of different loss terms. Lastly, the choice of a fitting student model is not easy and must be explored further.
+

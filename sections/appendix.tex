@@ -1,0 +1,330 @@
+\chapter*{Appendix}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Python code for determining the set $\Delta(G,q)$}
+
+For a DAG $G$, the following code determines which nodes are in the se $\Delta(G,q)$ for a query $q$. It uses two functions:
+\begin{enumerate}
+\item \texttt{find\_case}, a helper function which determines whether nodes are in the special case or the general case according to the logic from ~\cref{thm:querycost}.
+\item \texttt{create\_delta\_set}, the main function which populates the set $\Delta(G,q)$ depending on the result of \texttt{find\_case}.
+\end{enumerate}
+
+
+\begin{python}
+
+# Helper function for create_delta_set(); checks for paths between targets and parents of conditions.
+# Inputs: a DAG $G$, a target vertex $X$, a single conditional vertex $Y \in \{Y_{0},Y_{1},...Y_{n}\}$ for the query $q = (X|Y_{0},Y_{1},....Y_{n})$.
+#Returns: the case of individual vertex $Y$ in the query $q$, either special or general.
+
+def find_case(G,X,Y,cases):
+    skeleton = G.to_undirected()
+    y_ancestors = list(nx.ancestors(G,Y))
+    paths = list(nx.all_simple_paths(skeleton, X, Y, cutoff=None)) #use skeleton so they are undirected (routes not paths).
+
+    if len(y_ancestors) == 0:
+        cases[Y] = "special" #Yj in trivial special case
+        return(cases)
+
+    # The logic of the following is to find paths from X to Y: if any of them pass through an ancestor of Y then there is a "back route" to Y through its ancestors, meaning there is a path connecting X to a(Y)
+    # which does not pass through Y. 
+    for path in paths:
+        for y_ancestor in y_ancestors:
+            if y_ancestor in path: #There exists a path from X to a(Y) which does not pass through Y
+                cases[Y] = "general" #Yj in general case 
+                return(cases)
+            else:
+                continue
+            
+    #Only reaches this block of code if all paths to a(Y) passed through Y; in nontrivial special case.
+    cases[Y] = "special" #Yj in the special case
+    return(cases)	
+    
+\end{python}
+    
+    
+\begin{python}
+  
+#Inputs: A DAG G, a target vertex X, and conditional vertices Ys = {Y_{0},Y_{1},...Y_{n}})$corresponding to a query q = p(X|Y_{0}, Y_{1},...Y_{n}). 
+#Returns: the set Delta(G,q). 
+
+def create_delta_set(G,X,Ys): #Graph G, one target X, set of multiple conditions Ys = {y0, y1, ...}.
+    skeleton = G.to_undirected()
+    
+    dependent = []
+    cases = {} #Dictionary with (key, value) pairs: (Y,case).
+    if not nx.is_connected(skeleton): #Only consider connected graphs.
+        return(0)
+    if len(Ys) == 0:
+        return(list(nx.ancestors(G,X)))
+    
+    for Y in Ys:
+        cases = check_paths(G,X,Y,cases)
+    
+    shortest_path = nx.shortest_path(skeleton,X,Y) #use skeleton so we have shortest route (undirected)
+    x_ancestors = list(nx.ancestors(G,X))
+    y_ancestors = list(nx.ancestors(G,Y))
+    
+    dependent.append(X)
+    for x_ancestor in x_ancestors:
+        dependent.append(x_ancestor)
+
+    for Y in Ys:
+        if cases[Y] == "general":
+            for y_ancestor in y_ancestors:
+                dependent.append(y_ancestor)
+                
+        if cases[Y] == "special":
+            for node in shortest_path:
+                dependent.append(node)
+            dependent = list(set(dependent))
+            dependent.remove(Y)
+            for y_ancestor in y_ancestors:
+                if y_ancestor in dependent:
+                    dependent.remove(y_ancestor)
+    
+    return(list(set(dependent)))
+    
+\end{python}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Python code for identifying advantageous reversals}
+
+\null \quad \quad The following pieces of code determine which edge reversal is most advantageous at a single given time given a Dag $G$ and a query $q = (X|Y_{0},Y_{1},...,Y_{n})$. The first piece, \texttt{find\_covered\_edges} searches for covered edges since they are equivalent to immediately reversible edges. It does so by comparing the parents of each of the two vertices corresponding to an edge in $G$. 
+
+\begin{python}
+# Inputs: A DAG G
+# Return the set of covered edges in a graph. Independent of query. 
+
+def find_covered_edges(G):
+    covered_edges = []
+    for edge in G.edges: #for edge (X,Y)
+        source_parents = list(G.predecessors(edge[0])) #parents of X
+        target_parents = list(G.predecessors(edge[1])) #parents of Y
+        source_parents.append(edge[0]) #parents of X union X
+        if set(source_parents) == set(target_parents):
+            covered_edges.append(edge)
+    return(covered_edges)
+
+\end{python}
+
+\null \quad \quad Next, \texttt{is\_advantageous} takes in a DAG $G$, a covered edge $e$, and the parameters of the query $q = p(X|Y_{0},Y_{1},...,Y_{n})$. It creates a graph $Grev$, the graph which results if $e$ is reversed, and calculates $\Delta(Grev,q)$. Then, the difference between $\Delta(G,q)$ and $\Delta(Grev,q)$ is returned, indicating how advantageous the reversal is. 
+
+\begin{python}
+# Inputs: A DAG G, a covered edge, the parameters of the query q = p(X|Ys).
+# Returns: The number of vertices Delta(G,q) is reduced by if the edge is reversed, that is, how advantageous the reversal is. 
+
+def is_advantageous(G,edge, X, Ys):
+    vertex_cost_difference = 0
+    cost_before = len(find_case(G, X, Ys))
+    
+    x = edge[0]
+    y = edge[1]
+    Grev = G.copy()
+    Grev = structure_reverse_edge(Grev,x,y)
+    cost_after = len(find_case(Grev,X,Ys))
+    if cost_after < cost_before:
+        vertex_cost_difference = cost_before - cost_after
+    return(vertex_cost_difference)
+
+\end{python}
+
+\null \quad \quad Finally, \texttt{best\_reversal} iterates through the set of covered edges in $G$ to determine which covered edge is most advantageous when reversed, and returns this edge. 
+
+\begin{python}
+# Input: A DAG G, target vertex X, the set of conditional vertices Ys which correspond to the query q = p(X|Ys). 
+# Returns: the most advantageous edge reversal possible at a given time. 
+def best_reversal(G, X, Ys):
+    covered_edges = find_covered_edges(G) 
+    edge_advantages = {}
+    for edge in covered_edges:
+         edge_advantages[edge] = is_advantageous(G,edge,X,Ys)
+    max_adv_edge = max(edge_advantages, key=edge_advantages.get)
+    return(max_adv_edge)
+
+\end{python}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Python code for encoding conditional node data}
+
+\null \quad \quad The following code assume binary variables, that is, for each vertex $X$ in a DAG $G$ corresponding to a random variable, $X = x \in \{0,1\}.$ Encoding even binary variables is expensive and nontrivial, but the same arguments can be extended to categoricals for those patient enough to implement it. \newline
+\null \quad \quad Each vertex in $G$ is specified by a set of conditionals corresponding to the values its parents can take. Therefore, the number of conditionals corresponds to the number of parents it has. For example, if $X$ is a parentless vertex, it will be specified by $p(X=1)$. Since we are in the binary case, this is sufficient, since $p(X=0) = 1-p(X=1)$.\newline
+\null \quad \quad If the vertex $Y$ has a single parent $X$, it will be specified by $p(Y=1|X=0)$ and $p(Y=1|X=1)$ from which one can again determine $p(Y=0|X=0)$ and $p(Y=0|X=1)$. A node $Z$ with parents $X$ and $Y$ will be specified by $p(Z=1|X=0,Y=0)$, $p(Z=1|X=0,Y=1)$, $p(Z=1|X=1,Y=0)$ and $p(Z=1|X=1,Y=1)$. Generally, a vertex with $P$ parents will be specified by $2^{P}$ conditionals. Therefore, one must construct a dynamic data structure such as the following, which accounts for the variety in number of parents (and therefore conditionals) a vertex can have. 
+
+\begin{python}
+import itertools
+class NodeData:
+    '''
+    Attributes:
+        parents: a list of strings that contains the names of the parent nodes
+        conditionals: a list of size 2^p (where p is the number of parents) 
+            that contains the conditional probabilities of the RV of this node given all possible values for the parents
+    '''
+    def __init__(self, name, parents=None, conditionals=None):
+        self.name = name
+        self.parents = parents
+
+        # initializing the data structures,
+        # mostly stuff that ensures that everything also works for nodes without parents
+        if parents == None:
+            self.num_parents = 0
+        else:
+            self.num_parents = len(self.parents)
+
+        if conditionals == None:
+            self.conditionals = [0 for _ in range(2**self.num_parents)]
+        else:
+            self.conditionals = conditionals
+
+            
+    def set_conditional(self, p, parent_assignment=None):
+        '''
+        parent_assignment: a dict that maps values to names of parents, e.g.
+        {'x1' : 0, 'x2' : 1, 'x3' : 0, ...}
+        this function computes the index of self.conditionals where the required value is stored and sets the conditional probability
+        '''
+        # handle special case of node without parents:
+        if self.parents == None:
+            self.conditionals[0] = p
+            return
+        # general case:
+        index = 0
+        for p_i in range(len(self.parents)):
+            index += parent_assignment[self.parents[p_i]] * 2**p_i
+
+        self.conditionals[index] = p
+
+        
+    def get_conditional(self, parent_assignment):
+        '''
+        parent_assignment: a dict that maps values to names of parents, e.g.
+        {'x1' : 0, 'x2' : 1, 'x3' : 0, ...}
+        this function computes the index of self.conditionals where the required value is stored and returns the conditional
+        '''
+        
+        ##input of get conditionals is parent_assignment, dict which grows linearly with number of parents. 
+        ##So we can calculate this in terms of numparsx. 
+        
+        # handle special case of node without parents:
+        if self.parents == None:
+            return self.conditionals[0]
+        # general case:
+        index = 0
+        for p_i in range(len(self.parents)):
+            index += parent_assignment[self.parents[p_i]] * 2**p_i
+
+        return self.conditionals[index]
+
+    
+    def print_conditionals(self):
+        '''
+        prints the full conditional distribution
+        iterates through all possible assignments and prints the conditional distribution for each assignment in a seperate line
+        '''
+        all_possible_parent_assignments = [x for x in itertools.product([0,1], repeat=self.num_parents)]
+
+        for a_i in range(2**self.num_parents):
+            assignment = {self.parents[i] : all_possible_parent_assignments[a_i][i] for i in range(self.num_parents)}
+            # some list-magic that produces a sufficiently nice string:
+            assignment_string = "P("+self.name+" = 1 | " + ', '.join([str(x) 
+            		+ " = " + str(assignment[x]) for x in assignment]) + " ) 
+            		= " + str(self.get_conditional(assignment))
+            print (assignment_string)
+\end{python}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Python code for calculating edge reversals in a binary setting}
+
+Likewise to the data structures above, the following code assumes binary variables. It must also dynamically access the conditional probabilities specifying each node, since the length of specifiers of a vertex with $P$ parents is $2^{P}$. 
+
+\begin{python}
+def switch_edge(x, y):
+    '''
+    switches the edge (x,y) to (y,x)
+    x, y: NodeData
+    '''
+    # preparation:
+    # use itertools.product to get all possible assignments of values for the parent nodes:
+    
+    all_possible_parent_assignments = list(itertools.product([0,1], repeat=x.num_parents))
+    num_parents_assigments = len(all_possible_parent_assignments)
+
+    # get conditional joint distribution p(x,y | parents):
+    # initialization:
+    pxe0ye0 = [0 for _ in range(2**x.num_parents)]  
+    pxe0ye1 = [0 for _ in range(2**x.num_parents)]
+    pxe1ye0 = [0 for _ in range(2**x.num_parents)]
+    pxe1ye1 = [0 for _ in range(2**x.num_parents)]
+    
+    
+    # iterate through all possible assignments for the common parents of x and y:
+    for a_i in range(num_parents_assigments):
+        
+        assignemnt_dict_x = {x.parents[i] : all_possible_parent_assignments[a_i][i] for i in range(x.num_parents)}
+        assignemnt_dict_y = {x.parents[i] : all_possible_parent_assignments[a_i][i] for i in range(x.num_parents)}
+        assignemnt_dict_y[x.name] = 0
+        
+        # case x=0, y=1:
+        pxe0ye1[a_i] = (1-x.get_conditional(assignemnt_dict_x)) 
+        		* y.get_conditional(assignemnt_dict_y)
+        # case x=0, y=0:
+        pxe0ye0[a_i] = (1-x.get_conditional(assignemnt_dict_x)) 
+        		* (1-y.get_conditional(assignemnt_dict_y))
+
+        assignemnt_dict_y[x.name] = 1
+        # case x=1, y=1:
+        pxe1ye1[a_i] = x.get_conditional(assignemnt_dict_x) 
+        		* y.get_conditional(assignemnt_dict_y)
+        # case x=1, y=0:
+        pxe1ye0[a_i] = x.get_conditional(assignemnt_dict_x) 
+        		* (1-y.get_conditional(assignemnt_dict_y))
+
+    
+    # marginalize x from the conditional distribution of y:
+    pye0 = [pxe0ye0[i] + pxe1ye0[i] for i in range(num_parents_assigments)]
+    pye1 = [pxe0ye1[i] + pxe1ye1[i] for i in range(num_parents_assigments)]
+
+    # condition x on the possible values of y:
+    pxe0gye0 = [pxe0ye0[i]/pye0[i] for i in range(num_parents_assigments)]
+    pxe0gye1 = [pxe0ye1[i]/pye1[i] for i in range(num_parents_assigments)]
+    pxe1gye0 = [pxe1ye0[i]/pye0[i] for i in range(num_parents_assigments)]
+    pxe1gye1 = [pxe1ye1[i]/pye1[i] for i in range(num_parents_assigments)]
+
+    # construct new nodedata objects:
+    x_new_parents = [y.name]
+    if not x.parents == None:
+        x_new_parents += x.parents
+    x_new = NodeData(x.name, parents=x_new_parents)
+
+    for a_i in range(num_parents_assigments):
+        
+        # construct the assignment-dictionary:
+        assignment_dict = {x.parents[i] : all_possible_parent_assignments[a_i][i] for i in range(x.num_parents)}
+
+        # case y=0:
+        # add y to assignment_dict:
+        assignment_dict[y.name] = 0
+        # set conditional for x_new:
+        x_new.set_conditional(p=pxe1gye0[a_i], parent_assignment=assignment_dict)
+
+        # case y=1
+        # add y to assignment_dict:
+        assignment_dict[y.name] = 1
+        # set conditional for x_new:
+        x_new.set_conditional(p=pxe1gye1[a_i], parent_assignment=assignment_dict)
+
+    y_new_parents = []
+    
+    if not x.parents == None:
+        y_new_parents += x.parents
+        
+    y_new = NodeData(y.name, parents=y_new_parents)
+    
+    for a_i in range(num_parents_assigments):
+        # construct the assignment-dictionary:
+        assignment_dict = {x.parents[i] : all_possible_parent_assignments[a_i][i] for i in range(x.num_parents)}
+        y_new.set_conditional(p=pye1[a_i], parent_assignment=assignment_dict)
+
+    return x_new, y_new
+\end{python}

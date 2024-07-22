@@ -1,0 +1,281 @@
+\chapter{Exploiting Markov Equivalence using a Greedy Strategy}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Motivation}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\null \quad \quad One complication of minimizing the cost of a query over a Markov equivalence class is that Markov equivalence classes can be quite large~\cite{MECsize1, MECsize2}. Constructing all members of the class then searching for a minimal graph among those members may be very costly. \newline
+\null \quad \quad Additionally, searching for covered edges (edges reversible at a given moment) is a significantly simpler task than searching for essential edges (edges which can be reversed under the correct circumstances, but not necessarily at a given moment). This is because looking for covered edges only requires considering one vertex at a time, whereas searching for essential edges requires looking at sets of edges which may have to be reversed simultaneously. One can take advantage of these circumstances by searching for an optimal single edge reversal over the set of reversible edges in a graph $G$. \newline
+\null \quad \quad We therefore develop the greedy strategy, an algorithm in which each step entails searching for a single edge that can be reversed without leaving the original Markov equivalence class, while simultaneously reducing the number of vertices which must be computed to answer our query $q$ on $G$, written $|\Delta(G,q)|$. \newline
+\null \quad \quad There are two aspects we wish to consider while searching for a reversible edge which reduce the cost of answering a query:
+	\begin{itemize}
+	\item Does reversing the edge alter existing v-structures in the graph, either by creating a new v-structure or destroying an existing one? 
+	\item Does switching the edge indeed benefit our query, i.e., reduce the number of variables that must be considered while answering the query?
+	\end{itemize}
+We therefore present relevant background, create a procedure to identify reversible edges, develop a framework for when edge switching is beneficial, and analyze the efficacy of the procedure for minimization. 
+
+%%%%%%%%%%%%%%%%%%%
+\section{Background and Construction}\label{section:bgandconstruction}
+%%%%%%%%%%%%%%%%%%%
+\null \quad \quad In this section, we present the algorithms involved in the greedy strategy; each individual component is described and shown, however the complexities will not be discussed until later. 
+
+\subsection{Finding Reversible Edges}
+\null \quad \quad The greedy algorithm takes advantage of~\cref{coveredrev}, which states that reversible edges are exactly covered edges. Therefore, to search for reversible edges, we simply search for covered edges. We define the following algorithm to search for covered edges using~\cref{defcoverededge} directly, which tells us that covered edges $(X_{1},X_{2})$ have the same set of parents excluding $X_{1}$ itself.
+
+\begin{algorithm}[h!]\label{findcoverededges}
+\DontPrintSemicolon
+\KwIn{A directed acyclic graph $G$}
+\KwOut{The set of covered edges in $G$} 
+\begin{spacing}{1.25}
+
+covered\_edges $= []$ \;
+\For {$e = (X_{1}, X_{2}) \in Edges(G)$} {
+	\uIf {$\prod_{X_{1}}^{G} = \prod_{X_{2}}^{G} \textbackslash X_{1} $}{
+		add $e$ to covered\_edges
+	}
+  }
+\Return{covered\_edges}\;
+\end{spacing}
+
+\caption{{\sc Covered edges} returns a set of covered edges in a DAG}
+\label{algo:coverededges}
+\end{algorithm}
+
+\subsection{Determining the Benefit of a Reversal}
+\null \quad \quad Once we have identified the set of reversible edges, we must determine whether a switch is advantageous. Let $G=(V,E)$ be a DAG with $(X_{1},X_{2}) \in E$, and let $G'$ be the DAG achieved by reversing $(X_{1},X_{2})$. Then, to determine whether reversing $(X_{1},X_{2})$ is advantageous given a query $q$, we compare $|\Delta(G,q)|$ to $|\Delta(G',q)|$. If the latter is smaller, we have reduced the number of vertices the computation of $q$ depends on, and therefore the reversal is advantageous. \newline
+\null \quad \quad Then, we can determine which edge reversal is most advantageous by searching for $max_{G'}(|\Delta(G,q)| - |\Delta(G',q)|)$ where, without loss of generality, $G'$ is the DAG achieved by reversing a single covered edge in $G$. 
+%%%%%%%%%%%%%%%%%
+\begin{algorithm}[h!]
+\DontPrintSemicolon
+\KwIn{A directed acyclic graph $G$, a query $q$}
+\KwOut{The most advantageous possible edge reversal in $G$} 
+\begin{spacing}{1.25}
+
+edge\_advantages $=\{\}$ \;
+\For {$e$ $\in$ covered\_edges($G$) } {
+	$G' = G$ with $e$ reversed 
+	edge\_advantages[$e$] = $|\Delta(G,q)| - |\Delta(G',q)|$ \;
+  }
+best\_reversal = $e$ such that edge\_advantages[$e$] = max(values in edge\_advantages) \;
+\Return{best\_reversal}\;
+\end{spacing}
+
+\caption{{\sc Is Advantageous} returns the most advantageous edge reversal over $G$ given a query}
+\label{algo:isadv}
+\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Identifying the vertices a query depends on}
+\null \quad \quad Notice that Algorithm~\ref{algo:isadv} requires algorithmically determining the set $\Delta(G,q)$. To do so involves two subtasks: first, we must determine which case (either special or general) each condition in the query is in. Then, once all conditional vertices have been classified, we must add vertices accordingly to the set $\Delta(G,q)$. \newline
+\null \quad \quad There are at least two possible methods by which one can determine which case a vertex is in. These correspond to the two ways of framing the cases, namely~\cref{thm:querycostonetarget} and~\cref{lemma:alternativecases}: \newline 
+\null \quad \quad \cref{thm:querycostonetarget} suggests that we approach the cases by considering paths. In this work, we will use this method exclusively. Our goal is to determine whether, for a given condition $Y$, a target $X$ is conditionally independent of $\alpha(Y)$ given $Y$. To do so, we check all route from $X$ to each element in $\alpha(Y)$, calling these $Y_{\alpha_{i}},\  i \in [1,|\alpha(Y)|]$. If there exists a route from $X$ to some $Y_{\alpha_{i}}$ which does not pass through $Y$, we know that $X$ is not independent of $\alpha(Y)$ given $Y$. This would mean that $Y$ is in the general case.  If all paths from $X$ to $Y_{\alpha_{i}}$ pass through $Y$, then $\alpha(Y)$ is independent of $X$ given $Y$, and therefore $Y$ is in the special case. \newline
+\null \quad \quad The alternative method corresponding to \cref{lemma:alternativecases} involves creating a copy of the graph $G$ called $G'$ in which the vertex $Y$ is removed from $G'$, and checking whether 
+\begin{enumerate}
+\item $G'$ is made up of two disjoint subgraphs $G_{1}$ and $G_{2}$,
+\item $X \in G_{1}$ and all elements in $\alpha(Y) \in G_{2}$. 
+\end{enumerate}
+If both of the above are true, then $X$ is independent from $\alpha(Y)$ given $Y$, and therefore $Y$ is in the special case. Otherwise, $Y$ is in the general case. \newline
+\null \quad \quad The method outlined by \cref{thm:querycostonetarget} is presented in Algorithm~\ref{algo:findcase}:
+
+%%%%%%%%%%%%%%%%%
+\begin{algorithm}[h!]
+\DontPrintSemicolon
+\KwIn{A DAG $G$, a target $X$, a condition $Y$}
+\KwOut{The case of condition $Y$ with respect to target $X$ in $G$} 
+\begin{spacing}{1.25}
+
+$G'$ = skeleton of $G$ \#to ensure routes, not directed paths \;
+\textit{paths} = all simple paths from $X$ to $Y$ in $G'$ (no repeated vetices)\;
+\uIf {$|\prod_{G}^{Y}| = 0$} {
+	\textit{case} = `special' \;
+	\Return{case}
+}
+\For {\textit{path} in \textit{paths}} {
+	\For {ancestor in $\alpha(Y)$} {
+		\uIf {ancestor $\in$ path} {
+			\textit{case} = `general' \;
+			\Return{case} \;
+		}
+		\uElse {} {
+		continue \;
+		}
+	}
+}
+\#only reaches this block if a case has not already been established \;
+\textit{case} = `special' \;
+\Return{case}\;
+
+\end{spacing}
+\caption{{\sc Find case} returns the case of a single condition $Y$ with respect to a target $X$, either Special or General}
+\label{algo:findcase}
+\end{algorithm}
+
+%%%%%%%%%%%%%%%%%%
+
+\null \quad \quad The logic of the general case block is as follows: if any path from $X$ to $Y$ passes through an element in $\alpha(Y)$, then there is a back-route to $Y$ through its ancestors, meaning there is a path connecting $X$ to $\alpha(Y)$ which does not pass through $Y$.\newline
+\null \quad \quad This algorithm is applied repeatedly until the cases of all conditions $Y$ have been determined, at which point the appropriate vertices can be added to $\Delta(G,q)$ accordingly. This repeated application and collection of relevant vertices is handled by Algorithm~\ref{algo:createdeltaset}. \newline 
+
+
+%%%%%%%%%%%%%%%%%
+\begin{algorithm}[h!]
+\DontPrintSemicolon
+\KwIn{A DAG $G$, a target $X$, a set of conditions $Ys$ which correspond to a query $q  =p(X|Ys)$}
+\KwOut{$\Delta(G,q)$} 
+\begin{spacing}{1.25}
+
+$G'$ = skeleton of $G$ \#to ensure routes, not directed paths \;
+$\Delta(G,q)$ = [] \;
+\textit{cases} = \{\} \;
+\uIf {len(Ys) = 0} {
+	$\Delta(G,q)$ = $alpha(X)$ \;
+	\Return{$\Delta(G,q)$}
+}
+Add $X$ and $\alpha(X)$ to $\Delta(G,q)$ \;
+\For {$Y$ is $Ys$} {
+	\textit{shortest\_path} = the shortest path from $X$ to $Y$ over $G'$ \;
+	\textit{cases}[Y] = find\_case(G,X,Y) \;
+	\uIf {$Y$ is in the general case} {
+		\For {$Y_{\alpha}$ in $\alpha(Y)$} {
+			add $Y_{\alpha}$ to $\Delta(G,q)$ \;
+		}
+	\uIf {$Y$ is in the special case} {
+		\For {\textit{node} in \textit{shortest\_path}} {
+			add \textit{node} to $\Delta(G,q)$ \;
+			}
+		Remove $Y$ from $\Delta(G,q)$ \;
+		Remove $\alpha(Y)$ from $\Delta(G,q)$ \;
+		}
+	}
+}
+
+\Return {$\Delta(G,q)$ with no repeating values}
+
+
+\end{spacing}
+\caption{{\sc Create Delta Set} returns the set $\Delta(G,q)$.}
+\label{algo:createdeltaset}
+\end{algorithm}
+
+
+
+
+%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Complexity of the Greedy Strategy}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\null \quad \quad In this section, we will find the complexity of each of the algorithms involved in our greedy strategy. Ultimately, the goal is to compare the costs of identifying and enacting a beneficial transformation versus computing the query without transforming the graph. To do so, we will compare the complexity of the following: 
+\begin{enumerate}
+\item Computing a query $q$ on a DAG $G$,
+\item Identifying a beneficial edge reversal $e \in E$ which can be done on $G$,
+\item Computing the probabilities of the new graph $G'$ achieved by reversing $e$.
+\item Computing a query $q$ on $G'$. 
+\end{enumerate}
+which ultimately allows us to determine whether the cost of reversal was worth the speedups of answering $q$. \newline
+
+\subsection{Restrictions on Graph Structure}\label{restrictions}
+
+\null \quad \quad In order to reasonably compute the complexity of these algorithms, we must establish some restrictions on the structure of our DAG $G$ for the following reasons:
+\begin{itemize}
+\item Even in sparse graphs -- graphs in which $|E| \in \mathcal{O}(|V|)$ -- the number of parents is not inherently bounded. For example, the graph could consist of a single child vertex of all other vertices in the graph. Therefore, even restricting ourselves to sparse graphs is not sufficient if we wish to keep our algorithms tractable. To combat this, we set a limitation of the maximum number of parents allowable for a given vertex. 
+\item Likewise, the number of cycles (Definition~\ref{def:directedcycle}) in a graph are not inherently restricted. This means that the number of paths between two arbitrary vertices in $G$ are affected exponentially. We therefore also restrict the maximum number of cycles allowable in the graph. 
+\end{itemize}
+
+\null \quad \quad Luckily, in practice, these restrictions are reasonable for a graphical model; graphical models are meant to be sparse graphs by the nature of their usage, and are often explicity constructed this way~\cite{sparse1, sparse2}. \newline
+\null \quad \quad The particular restrictions we enforce are: (1) The maximum degree of a given vertex $v \in V$ is logarithmic, that is, maxdeg($G$) $\in \mathcal{O}(log(|V|))$, and (2) the maximum number of cycles in $G$ is logarithmic; num\_cycles $\in \mathcal{O}(log(|V|))$. \newline
+\begin{remark} One result of these restrictions is that a single conditional probability table of $G$ contains at most $\mathcal{O}(|V|)$-many values and $\mathcal{O}(|V|)$-many paths between two given vertices. 
+\end{remark}
+
+\subsection{Complexity of Components}
+
+\null \quad \quad Let $G = (V,E)$ be a sparse DAG with the aforementioned restrictions that (1) maxdeg($G$) $\in \mathcal{O}(log(|V|))$ and num\_cycles $\in \mathcal{O}(log(|V|))$. Let the vertices in $G$ be binary. \newline
+
+\textsc{Covered\_edges:}
+\begin{myindentpar}{1.5em} Algorithm~\ref{algo:coverededges} has complexity $\mathcal{O}(|V| \cdot log(|V|))$. This is because the main component of the algorithm is an iteration through the set of edges $E$ ($|V|$-many steps), wherein each iteration, two sets of vertices (bounded by the total number of vertices $|V|$) are compared. Since the sets of vertices being compared are sets of parents, they are bounded by $log(|V|)$ by assumption. Therefore, the total complexity is $\mathcal{O}(|V| \cdot log(|V|))$. \newline
+\end{myindentpar}
+
+\textsc{Find\_Case:} 
+\begin{myindentpar}{1.5em}Algorithm~\ref{algo:findcase} has complexity $\mathcal{O}(2^{c}|V|^{2})$ where $c$ is the number of cycles in $G$. This is because each cycle multiplies the number of possible paths between two vertices by $2$ in the worst case.  By the requirements that $c \in \mathcal{O}(log(|V|))$, this complexity becomes $\mathcal{O}(|V|^{3})$. \newline 
+\end{myindentpar}
+
+\textsc{Create\_Delta\_Set:} 
+\begin{myindentpar}{1.5em} Algorithm~\ref{algo:createdeltaset} relies on a breadth-first search to identify a shortest path from a vertex $X$ to $Y$ in $G' = skeleton(G)$. Note that it only has to be called once, since a single breadth-first search can return all of the shortest paths requires from a vertex $X$ to each $Y_{i}$. A breadth first-search has complexity $\mathcal{O}(|V|+|E|)$. In the case if a sparse graph, meaning $|E| \in \mathcal{O}(|V|)$, this is $\mathcal{O}(|V|^{2})$. However, \textsc{Create\_Delta\_Set} should be considered in conjunction with \textsc{Find\_Case}, which it calls for each condition $Y_{j}$ in $q$. We use the fact that $Y \in \mathcal{O}(|V|)$. The dominating factor of calling \textsc{Create \_Delta\_Set} is calling \textsc{Find\_Case}. Therefore, \textsc{Create\_Delta\_Set} and \textsc{Find\_Case} together amount to a complexity of $\mathcal{O}(|V| \cdot |V|^{3}) = \mathcal{O}(|V|^{4})$ in the case of our restricted graphs. \newline
+\end{myindentpar}
+
+\textsc{Is\_Advantageous:} 
+\begin{myindentpar}{1.5em}Algorithm~\ref{algo:isadv} called \textsc{Create\_Delta\_Set} twice for every covered edge $e\in E$. Naturally, the number of covered edges is bounded by $|E|$ which, in a sparse graph, is $\mathcal{O}(|V|)$. Therefore, considering the complexity of \textsc{Is\_Advantageous} called $\mathcal{O}(|V|)$-many times, we have $\mathcal{O}(|V|^{5})$. \newline
+\end{myindentpar}
+
+\textsc{Edge\_Switch:} 
+\begin{myindentpar}{1.5em}Reversing an edge $(X,Y)$ to $(Y,X)$ requires us to compute the new conditional probabilities of $X$ and $Y$ as outlined in Lemma~\ref{sharedparent}. This reversal has complexity $\mathcal{O}(2^{|\prod_{G}^{X}|})$ for a target vertex $X$. That is, it scales exponentially with respect to the number of parents of the target node. Under our requirement that $\prod_{G}^{X} \in \mathcal{O}(log(|V|))$, the algorithm has complexity $\mathcal{O}(2^{log(|V|)}) = \mathcal{O}(|V|)$.  \newline
+\end{myindentpar}
+
+\subsection{Complexity of Querying under Restrictions}
+
+\null \quad \quad  In Section~\ref{section:complexityofaquery}, we established the number of operations required to compute a query $q$ over a graph $G$. In this section, we find the complexity of each component of the computation under the restrictions placed in Section~\cref{restrictions}. The goal is to determine how the querying costs are affected by these restrictions, and specifically to demonstrate that under these reasonable assumptions on graph structure, the complexities of the computations presented in Section~\ref{section:complexityofaquery} become tractable. \newline
+\null \quad \quad As before, we let $G = (V,E)$ be a DAG and $q$ a query. Let $\mathcal{X}, \mathcal{Y}, \mathcal{Z}, \subseteq V$, where targets $X_{i} \in \mathcal{X}$ and conditions $Y_{j}$ are in $\mathcal{Y}$. Let $\mathcal{Z}$ be the set of vertices which $q$ depends on, which are neither targets nor conditions: $\Delta(G,q) \textbackslash (\mathcal{X} \cup \mathcal{Y})$. Then, the form of $q$ is $q = p(\mathcal{X}|\mathcal{Y}) = p(X_{0},...X_{m}|Y_{0},...,Y_{n})$. \newline
+
+Computing the joint distribution $p(\mathcal{X},\mathcal{Y},\mathcal{Z})$:
+\begin{myindentpar}{1.5em}
+We established earlier that the number of operations required to compute $p(\mathcal{X},\mathcal{Y},\mathcal{Z})$ is $(|\mathcal{X}|+|\mathcal{Y}|+ |\mathcal{Z}|-1)\cdot 2^{|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|}$. By the assumption that $G$ is sparse, this becomes $\mathcal{O}(|V|) \cdot \mathcal{O}(2^{|V|}) = \mathcal{O}(|V|\cdot 2^{|V|})$.\newline
+\end{myindentpar}
+
+Marginalize $\mathcal{Z}$ out of the distribution:
+\begin{myindentpar}{1.5em}
+The arithmetic cost of marginalizing $\mathcal{Z}$ out of the distribution $p(\mathcal{X},\mathcal{Y},\mathcal{Z})$ is in $\mathcal{O}(2^{|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|})$. Then, this is $\mathcal{O}(2^{|V|})$. \newline
+\end{myindentpar}
+
+Compute the marginal distributions of the conditionals $\mathcal{Y}$:
+\begin{myindentpar}{1.5em}
+The number of operations required to compute the joint marginal distribution $\mathcal{Y}$ is in $\mathcal{O}(2^{|\mathcal{X}|+|\mathcal{Y}|})$. Since $|\mathcal{X}| + |\mathcal{Y}| \leq |V|$, this is in $\mathcal{O}(2^{|V|})$. \newline
+\end{myindentpar}
+
+Condition the joint distribution on $\mathcal{Y}$:
+\begin{myindentpar}{1.5em}
+The cost of conditioning the joint distribution $p(\mathcal{X},\mathcal{Y})$ on the conditions $\mathcal{Y}$ to find $p(\mathcal{X}|\mathcal{Y})$ is $2^{(|\mathcal{X}| + |\mathcal{Y}|)}$. Again since $|\mathcal{X}| + |\mathcal{Y}| \leq |V|$, this becomes $\mathcal{O}(2^{|V|})$. \newline
+\end{myindentpar}
+
+Adding the complexities of each of the above subtasks yields the final complexity of $\mathcal{O}(2^{|V|})$, presented in \cref{thm:querycomplexitytotal}.
+
+\begin{theorem}\label{thm:querycomplexitytotal}
+ Let $G = (V,E)$ be a sparse binary DAG with the restrictions that $(1)$ the number of cycles in $G $ is in $\mathcal{O}(log(|V|)$ and $(2)$ the maximum degree of a vertex is in $\mathcal{O}(log(|V|))$. Let $q$ be a query. Then, the total cost of answering $q$ is $\mathcal{O}(2^{|V|})$.
+\end{theorem}
+
+\begin{remark} Since all instances of $2^{|V|}$ resulted from the binary setting, one can more generally conclude that querying in a categorical setting (in which each variable can take on $n$-many values), the complexity is $\mathcal{O}(n^{|V|})$
+\end{remark}
+
+\newpage
+\subsection{Benefit of Edge Reversal on Querying}
+
+\begin{table}[h!]
+  \begin{center}
+    \begin{tabular}{l  l  l }
+	&Finding the joint distribution $p(\mathcal{X},\mathcal{Y},\mathcal{Z})$ 	& $(|\mathcal{X}|+|\mathcal{Y}|+ |\mathcal{Z}|-1)\cdot 2^{|E|}$ \\[1em]
+	&Marginalizing out $\mathcal{Z}$	 						& $\mathcal{O}(2^{(|\mathcal{X}| + |\mathcal{Y}| + |\mathcal{Z}|)})$ \\[1em]
+	&Finding the joint marginal $p(\mathcal{Y})$ 					& $\mathcal{O}(2^{(|\mathcal{X}| + |\mathcal{Y}|)}$) \\[1em]
+	&Conditioning on all conditions $\mathcal{Y}$					& $\mathcal{O}(2^{(|\mathcal{X}| + |\mathcal{Y}|)}$) \\[1em]
+    \end{tabular}
+  \end{center}
+  \caption{}
+   \label{tab:tableofcosts}
+  \end{table}
+  
+\null \quad \quad In this section, we determine the arithmetic speedup gained by reversing a single covered edge in a DAG $G$ with the restrictions outlined in~\cref{section:complexityofaquery}. In Chapter $3$ we determined that arithmetic cost of querying is the sum of the four components shown in Table~\ref{tab:tableofcosts}.\newline
+
+\begin{lemma}\label{lemma:onevertex}
+Let $G=(V,E)$ be a DAG. Reversing a covered edge $(X,Y) \in E$ to be $(Y,X)$ changes $|\Delta(G,q)|$ by at most one vertex. 
+\end{lemma}
+
+\begin{proof}
+Recognizing that reversible edges are covered edges, reversing an edge $(X,Y)$ to $(Y,X)$ can only reduce $\Delta(G,q)$ by one vertex. This is because $X$ and $Y$ share ancestors (with the exception of $X$ itself being an ancestor of $Y$), so reversing $(X,Y)$ does not disconnect $\alpha(X)$ from $\Delta(G,q)$. 
+\end{proof}
+
+\null \quad \quad In response to~\cref{lemma:onevertex}, we determine the number of operations saved by removing a single vertex from $\Delta(G,q)$. Let $Z \in \mathcal{Z}$ be the vertex which is removed from $\Delta(G,q)$ by reversing an edge $(Z,\cdot)$ to $(\cdot, Z)$. Here, we define $\mathcal{Z}$ to still include $Z$ after reversal. Then the cost of finding the joint distribution $p(\mathcal{X}, \mathcal{Y}, \mathcal{Z})$, which was previously $(|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|-1)\cdot 2^{|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|}$, becomes $(|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|-2)\cdot 2^{|\mathcal{Z}|+|\mathcal{Z}|+|\mathcal{Z}|-1}$. \newline
+\null \quad \quad Next, we notice that only two of the above terms depended on $\mathcal{Z}$: finding the joint distribution $p(\mathcal{X},\mathcal{Y},\mathcal{Z})$, and marginalizing out $\mathcal{Z}$. Since we have already considered the effect on finding the joint distribution, we now only need to consider the speedup on the marginalization. The cost of marginalizing out all elements in $\mathcal{Z}$ is reduced from $2^{(|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|)}$ to $2^{(|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|-1)}$. \newline
+\null \quad \quad The total number of operations saved is therefore $2^{|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|} + 2^{|\mathcal{X}|+|\mathcal{Y}|+|\mathcal{Z}|-1}$. This is an exponential improvement; each time the size of $\mathcal{Z} \subset \Delta(G,q)$ is reduced by $1$, the cost of computing $q$ halves. That is, if we reduce the size of $\mathcal{Z}$ by $k$-many variables, the complexity of answering $q$ is improved by $\mathcal{O}(2^{k}).$

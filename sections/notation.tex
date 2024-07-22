@@ -1,0 +1,42 @@
+\section*{Notation and Abbreviations}
+
+\begin{table}[h!]
+  \begin{center}
+      \begin{spacing}{1.4}
+    \begin{tabular}{  l  l }
+
+      \hline
+	
+	 DAG & Directed Acyclic Graph. \\
+	 iff & if and only if. \\
+	 $G = (V,E)$ & a graph $G$ with vertices $V$ and edges $E$. \\
+	 $G, G', G_{1}, G_{2}, ..., G_{n}$ & directed graphs. \\ 
+	$H, H', H_{1}, H_{2}, ..., H_{n}$ & undirected and mixed graphs. \\ 
+	$B, B', B_{1}, B_{2}, ..., B_{n}$ &  Bayesian networks. \\
+	Capital letters e.g. $X,Y,Z$ & random variables.\\
+	Lowercase letters e.g. $x,y,z$ & values attained by random variables. \\
+	$p(X=x)$ & the probability that the random variable $X$ takes on \\ 
+		& the value $x$. \\ 
+	$p(X=x,Y=y)$ & the probability of $X=x$ and $Y=y$ simultaneously. \\
+	$p(X=x|Y=y)$ & the probability that $X=x$ given the condition $Y=y$. \\
+	$p(X)$ & the joint probability function of possible values \\ 
+		&attained by $X$. \\
+	$\alpha(X)$ & the set of ancestors of a vertex $X$ in a graph $G$.\\
+	$\prod\nolimits_{X}^{G}$ & the set of parents of a vertex $X$ in a graph $G$.\\
+	$q = p(X_{0}, ...X_{m}|Y_{0}, ..., Y_{n})$ & a query with targets $X_{i}$ and conditions $Y_{j}$. \\
+	$\Delta(G,q)$ & the set of vertices involved in a query $q$ on a \\ 
+		& graph $G$.\\
+	$\Delta*$ & $\argmin_{G' \in [G]} (|\Delta(G',q)|)$. \\
+	$[G]$ & the Markov equivalence class of $G$. \\ 
+	MEC &  Markov Equivalence Class. \\ 
+	$G \approx_{M} G'$ & $G$ is Markov equivalent to $G'$.\\
+	$G_{*}$ & essential graph of $G$. \\ 
+	$Q=\{q_{1}, q_{2}, ..., q_{n}\}$ & a sequence of queries. \\
+	$d_{q}^{G}(q_{1},q_{2})$ & the query distance of $q_{1}$ and $q_{2}$ with respect to $G$. \\
+	$G_{Q}$ & a Query Distance graph determined over \\ 
+		& the MEC $[G]$. \\
+
+ \end{tabular}
+ \end{spacing}
+ \end{center}
+ \end{table}

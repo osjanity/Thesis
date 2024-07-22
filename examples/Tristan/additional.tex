@@ -1,0 +1,50 @@
+
+% additional results
+The following results are added here, because they may give additional insight in soem cases, but did overall not add to the results presented in the main part of the thesis.
+
+\subsection*{Quantization}
+
+\begin{figure}[!htbp]
+	\includegraphics[width=0.8\textwidth]{quant-file-sizes-mobile.pdf}
+	\centering
+	\caption[File sizes and compression after quantization for MobileNet]{File sizes and compression after quantization for MobileNet}
+    \label{fig:quant:size-mobile}
+\end{figure}
+
+\begin{figure}[!htbp]
+	\includegraphics[width=0.8\textwidth]{quant-compression-mobile.pdf}
+	\centering
+	\caption[Compression and realive sizes after quantization for MobileNet]{The ratios of the compressed file against the original one and the size of the compressed versions relative to the unquantized model for MobileNet.}
+    \label{fig:quant:ratios-mobile}
+\end{figure}
+
+\begin{figure}[!htbp]
+	\includegraphics[width=0.8\textwidth]{quant-inference-time-mobile.pdf}
+	\centering
+	\caption[Inference time of the MobileNet model with quantization]{The inference times for all three version of MobileNet when quantization is applied in different ways.}
+    \label{fig:quant:inference-mobile}
+\end{figure}
+
+\clearpage
+\subsection*{Pruning}
+
+\begin{figure}[!htbp]
+	\includegraphics[width=0.8\textwidth]{prune-inference-time-unaffected.pdf}
+	\centering
+	\caption[Unaffected inference time after magnitude-based pruning]{As expected, the magnitude-based pruning has no effect on inference time.}
+    \label{fig:prune:magnitude-inference}
+\end{figure}
+
+\begin{figure}[!htbp]
+	\includegraphics[width=0.8\textwidth]{prune-resnet.pdf}
+	\centering
+	\caption[Applied magnitude-based pruning to the ResNet model for CIFAR classification]{Applied magnitude-based pruning to the ResNet model for CIFAR classification. The decay of the accuracy is more smooth and it is harder to pinpoint the ecact point, were the model cannot recover anymore.}
+    \label{fig:prune:resnet}
+\end{figure}
+
+\begin{figure}[!htbp]
+	\includegraphics[width=0.8\textwidth]{prune-channel-sizes.pdf}
+	\centering
+	\caption[Reduction in model size by channel pruning]{The reduction in parameters by pruning whole filters translates into a reduced file size of the final model.}
+    \label{fig:prune:channel-size}
+\end{figure}

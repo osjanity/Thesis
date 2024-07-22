@@ -1,0 +1,284 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% structure of the document %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\documentclass[12pt, a4paper, twoside]{report}
+
+
+\usepackage[paper=a4paper, left=20mm, right=20mm, bottom=10mm, top=10mm]{geometry}
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage{fourier} % Use the Adobe Utopia font for the document - comment this line to return to the LaTeX default
+\usepackage[german,english]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{listings}
+\usepackage{color}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+\usepackage{algpseudocode}
+\usepackage{framed}
+
+\usepackage{subcaption,graphicx}
+\usepackage{tikz-network}
+\usepackage{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage{cleveref}
+\usepackage[ruled,linesnumbered,dotocloa]{algorithm2e}
+\usepackage{mathtools}
+\usepackage{multirow}
+\usepackage{blindtext}
+\usepackage{caption}
+\captionsetup{font=footnotesize}
+\usepackage{setspace}
+\usetikzlibrary{decorations.pathreplacing}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{tabu, booktabs}
+
+%for formatting python snippets
+\usepackage{pythonhighlight} 
+\usepackage{pythontex}
+
+\renewcommand\theadfont{\bfseries}
+\renewcommand\theadgape{\Gape[4pt]}
+\renewcommand\cellgape{\Gape[4pt]}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+% configure image path
+\graphicspath{ {./images/} }
+
+% nicer font
+\usepackage{mathpazo}
+
+% nomenclature
+\usepackage[intoc, english]{nomencl}
+\makenomenclature
+
+\usepackage{setspace}
+\onehalfspacing
+\raggedbottom
+
+% meta data
+\newcommand{\ttitle}{Exploiting Markov Equivalence \\ for Fast Inference}
+\newcommand{\tauthor}{Jenette Sellin}
+\newcommand{\tdate}{\today}
+
+% additional macros
+\newcommand{\code}[1]{\texttt{#1}}
+
+% Theorems, lemmas
+\newtheoremstyle{spacethm}% name of the style to be used
+  {10pt}% measure of space to leave above the theorem. E.g.: 3pt
+  {20pt}% measure of space to leave below the theorem. E.g.: 3pt
+  {\itshape}% name of font to use in the body of the theorem
+  {0pt}% measure of space to indent
+  {\bfseries}% name of head font
+  {.}% punctuation between head and body
+  { }% space after theorem head; " " = normal interword space
+  {\thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}
+  
+  \newtheoremstyle{spaceex}% name of the style to be used
+  {10pt}% measure of space to leave above the theorem. E.g.: 3pt
+  {20pt}% measure of space to leave below the theorem. E.g.: 3pt
+  {}% name of font to use in the body of the theorem
+  {0pt}% measure of space to indent
+  {\bfseries}% name of head font
+  {.}% punctuation between head and body
+  { }% space after theorem head; " " = normal interword space
+  {\thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}
+  
+
+% some custom 'theorem'-like environments that each get their own counter  
+
+\theoremstyle{spacethm}% default
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}[section]
+
+\theoremstyle{spaceex}
+\newtheorem{conjecture}{Conjecture}[section]
+\newtheorem{example}{Example}[section]
+\newtheorem*{remark}{Remark}
+\newtheorem*{note}{Note}
+\newtheorem{case}{Case}
+\newtheorem*{notation}{Notation}
+
+
+\crefname{lemma}{Lemma}{Lemmas}
+\crefname{theorem}{Theorem}{Theorems}
+\crefname{definition}{Definition}{Definitions}
+\crefname{algorithm}{Algorithm}{Algorithms}
+
+%---------------
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+%---------------
+\numberwithin{equation}{section} % Number equations within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section} % Number figures within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+\newenvironment{myindentpar}[1]
+ {\begin{list}{}
+         {\setlength{\leftmargin}{#1}}
+         \item[]
+ }
+ {\end{list}}
+ 
+ \newcommand{\ME}{\sim_{M}}
+
+%---------------------bibstuff
+ \bibliographystyle{ieeetr}
+% \bibliographystyle{apa} 
+%---------------------/bibstuff
+
+%---------------
+
+% start here
+\begin{document}
+
+% environment up until table of contents
+{
+% start new sections on an odd page
+%\newcommand*\stdsection{}
+%\let\stdsection\section
+%\renewcommand*\section{%
+%\clearpage\ifodd\value{page}\else{\mbox{}\thispagestyle{empty}}\clearpage\fi
+%\stdsection}
+
+% no page numbers on first page
+\pagenumbering{gobble}
+\clearpage
+\thispagestyle{empty}
+
+% title page
+\input{titlepage}
+
+\newgeometry{
+    left=40mm,
+    right=20mm,
+    top=30mm,
+    bottom=30mm
+}
+
+% blank page after title page
+\shipout\null
+\newpage
+
+\pagenumbering{Roman}
+
+\newgeometry{
+    left=40mm,
+    right=20mm,
+    top=30mm,
+    bottom=30mm
+}
+
+% abstract
+\newpage
+\input{abstract}
+\newpage
+
+
+%acknowledgements
+\newpage
+\input{acknowledgements}
+\newpage
+
+%notation
+\newpage
+\input{notation}
+\newpage
+
+
+\newgeometry{
+    left=40mm,
+    right=20mm,
+    top=30mm,
+    bottom=30mm
+}
+
+% table of contents
+\newpage
+\tableofcontents
+
+\clearpage
+\pagenumbering{arabic}
+
+%%%%%%%%%%%%%%% CHAPTER 1 INTRODUCTION
+% introduction
+\newpage
+\input{introduction}
+
+%%%%%%%%%%%%%%% CHAPTER 2 PRELIMINARIES
+% graph theory basics
+\newpage
+\input{graphtheory}
+% bayesian statistics basics
+\input{bayesianstatistics}
+
+%%%%%%%%%%%%%%% CHAPTER 3 QUERYING
+% General querying
+\newpage
+\input{querying}
+
+%%%%%%%%%%%%%%% CHAPTER 4 MEC
+% Markov equivalence
+\newpage
+\input{markovequivalence}
+
+%%%%%%%%%%%%%%% CHAPTER 5 EXPLOITING MEC
+%Greedy strategy
+\newpage
+\input{greedy}
+
+%%%%%%%%%%%%%%% CHAPTER 6 COMPARISON
+% Comparison
+\newpage
+\input{comparison}
+
+
+%%%%%%%%%%%%%%% CHAPTER 7 CONCLUSION 
+% Conclusion
+\newpage
+\input{conclusion}
+
+%%%%%%%%%%%%%%%FINALITIES
+%references 
+\newpage
+\bibliography{bibliography}
+
+\newpage
+\input{appendix}
+
+% declaration of authorship
+\newpage
+\input{declaration}
+
+
+\end{document}

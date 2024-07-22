@@ -1,0 +1,146 @@
+\chapter{Preliminaries}
+
+\null \quad \quad In this chapter we introduce preliminary concepts from graph theory and Bayesian statistics. These concepts will allow us to robustly define our models and problem statements, give us critical background for evaluating queries and exploring Markov Equivalence, and serve as a basis for the content of the rest of the thesis.
+
+\section{Foundations of Graph Theory}
+
+%-------------------------graph defn
+\begin{definition}[Graph (directed, undirected, mixed)]
+A \textbf{graph} is defined as a pair $G = (V,E)$ in which $V$ is a finite set of vertices, and $E \subset V \times V$ is a finite set of edges. Vertices (also sometimes called \textbf{nodes}) will generally be denoted by capital letters, \textit{i.e.} $X$, $Y$, $Z$. $G$ is called \textbf{undirected} if every edge in $G$ is undirected, meaning that for each edge $(X,Y) \in E$ (denoting an edge from vertex $X$ to vertex $Y$), the edge $(Y,X)$ is also in $E$, for $X \neq Y$. Otherwise, $G$ is called \textbf{directed}. We denote such undirected edges by $\{X,Y\}$. A \textbf{mixed graph} (also called a hybrid graph) is a graph $G$ which contains both directed and undirected edges.
+\end{definition}
+
+\begin{figure}[h!]
+\begin{center}
+\begin{tikzpicture}
+\Vertex[x = .5, y=0, size=.5, color=white]{x2}
+\Vertex[x=.5, y=2 ,size=.5,color=white]{x3} 
+\Vertex[x = -1.2, y=1, size=.5, color=white]{x4}
+\Edge[Direct, distance=0.5](x4)(x2)
+\Edge[Direct, distance=0.5](x4)(x3)
+\Edge[Direct, distance=0.5](x2)(x3)
+\Text[y=-1, x=-.3]{directed} 
+
+\Vertex[x = 4.5, y=0, size=.5, color=white]{x2}
+\Vertex[x=4.5, y=2 ,size=.5,color=white]{x3} 
+\Vertex[x = 2.8, y=1, size=.5, color=white]{x4}
+\Edge[Direct, distance=0.5](x4)(x2)
+\Edge[distance=0.5](x4)(x3)
+\Edge[distance=0.5](x2)(x3)
+\Text[y=-1, x=3.7]{mixed} 
+
+\Vertex[x = 8.5, y=0, size=.5, color=white]{x2}
+\Vertex[x=8.5, y=2 ,size=.5,color=white]{x3} 
+\Vertex[x = 6.8, y=1, size=.5, color=white]{x4}
+\Edge[distance=0.5](x4)(x2)
+\Edge[distance=0.5](x4)(x3)
+\Edge[distance=0.5](x2)(x3)
+\Text[y=-1, x=7.7]{undirected} 
+
+\end{tikzpicture}
+\end{center}
+\caption{}
+\end{figure}
+%------------------------\-graph defn
+
+\begin{definition}[Neighbor, adjacent] Two vertices $X, Y \in V$ in a graph $G = (V,E)$ are called \textbf{adjacent} if there is an edge between them, either $(X,Y)$, $(Y,X)$, or ${X,Y}$. $X$ and $Y$ are also called \textbf{neighbors} in this scenario. 
+\end{definition}
+
+\begin{definition}[Route]
+A \textbf{route} in a graph $G = (V,E)$ is a sequence $X_{1}, X_{2}, ..., X_{k}$ of vertices in $V$ such that there is an edge connecting $X_{i}$ to $X_{i+1}$ (independent of the direction of the edge), for $i = 1, ..., k-1, k \geq 1$. The integer $k$ is the length of the route.
+\end{definition}
+
+\begin{definition}[Path, directed cycle]\label{def:directedcycle}
+A (directed) \textbf{path} in a directed graph $G=(V,E)$ is a route where vertices $X_{i}$ and $X_{i+1}$ are connected by a directed edge $(X_{i},X_{i+1})$. A directed path which begins and ends at the same vertex is called a \textbf{directed cycle}. 
+\end{definition}
+
+\begin{remark}
+The distinction between a path and a route will be significant in later chapters. One should retain that a path is a directed sequence while a route is undirected. 
+\end{remark}
+
+\begin{definition}[Parent, ancestor]
+Given two vertices $X,Y \in V$ in a directed graph $G = (V,E)$, $Y$ is called a \textbf{parent} of $X$ if there is an edge $(Y,X) \in E$. The set of parents of a vertex $X$ in a graph is denoted $\prod\nolimits_{X}^{G}$. Likewise, $X$ is called a \textbf{child} of $Y$. The set of \textbf{ancestors} of $X$, denoted $\alpha(X)$, is the set of all vertices $Y$ such that there exists a directed path from $Y$ to $X$, but no path from $X$ to $Y$. In the context of this thesis, this is the set of vertices upon which a vertex $X$ depends, either directly or indirectly. Likewise, if $Y$ is an ancestor of $X$, then $X$ is a \textbf{descendant} of $Y$.
+\end{definition}
+
+\begin{center}
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}
+\Vertex[x=0, y=2, size=.4, color=red, shape=rectangle]{x1} %parent higher
+\Vertex[x = 3.5, y=0, size=.4, color=blue, shape=rectangle]{x2} %child lower
+\Vertex[x=3.5, y=2 ,size=.4,color=blue, shape=rectangle]{x3}  %child higher 
+\Vertex[x = 1.8, y=1, size=.5, color=gray]{x4} %starting node
+\Vertex[x = 0, y=0, size=.4, color=red, shape=rectangle]{x5} %single branch
+\Vertex[x = -1.8, y=1, size=.5, color=red]{x6} % lower granparent
+\Vertex[x = -1.8, y=3, size=.5, color=red]{x7} %top left grandparent
+\Vertex[x = 5.3, y=1, size=.5, color=blue]{x8} %grandchild lower
+\Vertex[x = 5.3, y=-1, size=.5, color=blue]{x9} %grandchild higher
+\Vertex[x = 1.8, y=-1, size=.5, color=white]{xa} %free child 
+
+\Edge[Direct, distance=0.5](x1)(x4)
+\Edge[Direct, distance=0.5](x4)(x2)
+\Edge[Direct, distance=0.5](x4)(x3)
+\Edge[Direct, distance=0.5](x2)(x3)
+
+\Edge[Direct, distance=0.5](x5)(x4)
+\Edge[Direct, distance=0.5](x6)(x1)
+\Edge[Direct, distance=0.5](x7)(x1)
+\Edge[Direct, distance=0.5](x7)(x6)
+\Edge[Direct, distance=0.5](x5)(xa)
+\Edge[Direct, distance=0.5](x2)(x8)
+\Edge[Direct, distance=0.5](x2)(x9)
+
+\end{tikzpicture}
+\caption{Red vertices are ancestors of the gray vertex (squares denoting parents), and blue vertices are descendants of it (squares denoting children). The white vertex is neither an ancestor nor a descendant of the gray vertex.}
+\end{figure}
+\end{center}
+
+
+\begin{remark}
+$\prod\nolimits_{X}^{G} \subseteq \alpha(X)$. Likewise, the set of children of $X$ is a subset of the set of descendants of $X$. 
+\end{remark}
+
+%----------------------------------- chain graph defn
+\begin{definition}[Chain graph, directed acyclic graph (DAG)]
+A mixed graph $G = (V,E)$ is called a \textbf{chain graph} if it contains no directed cycles. A \textbf{directed acyclic graph} is a chain graph which is directed. This is abbreviated as \textit{DAG}.
+\end{definition}
+
+\begin{figure}[h!]
+\begin{center}
+\begin{tikzpicture}
+\Vertex[x=0, y=1, size=.5, color=white]{x1}
+\Vertex[x = 3.5, size=.5, color=white]{x2}
+\Vertex[x=3.5, y = 2 ,size=.5,color=white]{x3}
+\Vertex[x = 1.8, y=1, size=.5, color=white]{x4}
+\Edge[Direct, distance=0.5](x1)(x4)
+\Edge[Direct, distance=0.5,color=red](x3)(x2)
+\Edge[Direct, distance=0.5,color=red](x2)(x4)
+\Edge[Direct, distance=0.5,color=red](x4)(x3)
+\Text[y=-.5, x=1.8]{not a DAG}
+
+
+\Vertex[x=6.5, y=1, size=.5, color=white]{x1}
+\Vertex[x = 10, size=.5, color=white]{x2}
+\Vertex[x=10, y = 2 ,size=.5,color=white]{x3}
+\Vertex[x = 8.3, y=1, size=.5, color=white]{x4}
+\Edge[Direct, distance=0.5](x1)(x4)
+\Edge[Direct, distance=0.5](x4)(x2)
+\Edge[Direct, distance=0.5](x4)(x3)
+\Edge[Direct, distance=0.5](x3)(x2)
+\Text[y=-.5, x=8.3]{DAG}
+
+\end{tikzpicture}
+\end{center}
+\caption{A directed cycle is shown in red.}
+\end{figure}
+
+\begin{remark}
+Every undirected graph is a chain graph.
+\end{remark}
+
+\begin{definition}[Tree, Spanning tree]\cite{tree}
+A \textbf{tree} is an unweighted, undirected connected acyclic graph. A \textbf{spanning tree} $T$ of a DAG $G=(V,E)$ is a subgraph of $G$ which is a tree and connects all vertices in $G$.
+\end{definition}
+
+%--------------------------------------------\chain graph defn
+
+
